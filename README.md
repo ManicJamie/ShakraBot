@@ -34,4 +34,4 @@ This rewrite moves most functionality (especially admin-only functionality) to t
 - [ ] Cooldowns
 - [ ] Better per-server configurability on a cog registration level
     - [ ] Including better live reload to avoid needing admin maintenance on new guild joins.
-- [ ] 
+- [ ] Ban Vex
