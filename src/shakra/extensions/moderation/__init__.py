@@ -26,7 +26,6 @@ from discord.ui import (
 from discord.utils import MISSING
 
 from ...utils import GUILD_IDS, message_embed
-from .appeal import AppealsCog
 
 if TYPE_CHECKING:
     from ... import Shakra
@@ -47,8 +46,7 @@ async def setup(bot: Shakra):
     GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
 
     await bot.add_cog(ModerationCog(), guilds=GUILDS)
-    await bot.add_cog(AppealsCog(bot))
-    # await bot.add_cog(ModerationMuteCog())  # Mutes left out due to lack of need for them. Left unfinished.
+
     bot.tree.add_command(ctxmnu_ban, guilds=GUILDS)
     bot.tree.add_command(ctxmnu_warn, guilds=GUILDS)
     bot.tree.add_command(ctxmnu_relay, guilds=GUILDS)
