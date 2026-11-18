@@ -30,8 +30,8 @@ class SpeedrunRolesCog(Cog):
     def __init__(self, bot: Shakra) -> None:
         self.bot = bot
         self.logger = bot.logger.getChild("SrRoles")
-    
-    @default_permissions()
+
+    @default_permissions(manage_roles=True)
     class ManageSrRoles(Group, name="sr_roles_manage"):
         @command()
         async def add(self, interaction: Interaction, role: Role, game: str):
