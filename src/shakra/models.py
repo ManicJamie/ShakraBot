@@ -21,7 +21,9 @@ class GuildConfig(Model):
     guild_id = IntField(primary_key=True)
     created = DatetimeField(auto_now_add=True)
     touched = DatetimeField(auto_now=True)
-    
+
+    log_channel = IntField(null=True)
+
     ticket_forum_id = IntField(null=True)
     ticket_tag_id = IntField(null=True)
     appeal_tag_id = IntField(null=True)
