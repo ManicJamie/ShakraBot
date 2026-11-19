@@ -15,7 +15,7 @@ from discord.ext.commands import Cog, Context, GroupCog, cooldown, hybrid_comman
 from discord.ui import Modal
 
 from ..models import Ready
-from ..utils import GUILD_IDS, DurationConverter
+from ..utils import DurationConverter
 
 if TYPE_CHECKING:
     from .. import Shakra
@@ -28,10 +28,8 @@ logger = logging.getLogger("discord.shakra.race_utils")
 
 
 async def setup(bot: Shakra):
-    GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
-
     await bot.add_cog(RaceUtilsGlobal(bot))
-    await bot.add_cog(RaceUtilsCog(bot), guilds=GUILDS)
+    await bot.add_cog(RaceUtilsCog(bot))
 
 
 async def countdown_timeout(msg: Message, exit_time: int):

@@ -17,17 +17,16 @@ from discord.ext.commands import Cog, GroupCog
 from discord.ui import Label, Modal, Select, TextInput
 
 from ...models import GuildConfig, Ticket
-from ...utils import APP_NAME, GUILD_IDS, message_embed
+from ...utils import APP_NAME, message_embed
 
 if TYPE_CHECKING:
     from ... import Shakra
 
 
 async def setup(bot: Shakra):
-    GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
-    
-    await bot.add_cog(TicketSubmissionCog(bot))
-    await bot.add_cog(TicketReceptionCog(bot), guilds=GUILDS)
+    # await bot.add_cog(TicketSubmissionCog(bot))
+    # await bot.add_cog(TicketReceptionCog(bot))
+    pass
 
 class SubmitTicketModal(Modal):
     def __init__(self, guilds: list[Guild]) -> None:

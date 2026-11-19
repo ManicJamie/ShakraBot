@@ -50,7 +50,7 @@ async def setup(bot: Shakra):
     BOT = bot
 
     await bot.add_cog(ModerationCog(bot))
-    await bot.add_cog(AppealsCog(bot))
+    # await bot.add_cog(AppealsCog(bot))
     # await bot.add_cog(ModerationMuteCog())  # Mutes left out due to lack of need for them. Left unfinished.
 
     @context_menu(name="Edit Relayed Message")
