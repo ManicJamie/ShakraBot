@@ -9,7 +9,6 @@ from discord.app_commands import (
     allowed_contexts,
     autocomplete,
     default_permissions,
-    describe,
 )
 from discord.app_commands import command as slash_cmd
 from discord.ext.commands import Cog, CommandError, CommandNotFound, Context
@@ -28,7 +27,7 @@ from discord.utils import MISSING
 from orjson import JSONDecodeError
 
 from ..models import Tag, TagContext, TagLabelStyle
-from ..utils import APP_COLOUR, GUILD_IDS, is_bot_owner, message_embed
+from ..utils import APP_COLOUR, is_bot_owner, message_embed
 from ..utils import logger as logger_parent
 
 if TYPE_CHECKING:
@@ -38,7 +37,6 @@ cog: TagCog
 
 async def setup(bot: Shakra):
     global cog
-    GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
     
     cog = TagCog(bot)
     await bot.add_cog(cog)
@@ -49,25 +47,34 @@ async def teardown(bot: Shakra):
     bot.cmd_failure_handlers.remove(cog.txt_cmd_fallback)
 
 
-        
 # TODO: cmd permission
+
 
 async def retrieve_tag(interaction: Interaction, name: str):
     if interaction.context.guild:
-        return await Tag.get_or_none(parent_id=interaction.guild_id, context=TagContext.GUILD, name=name)
+        return await Tag.get_or_none(
+            parent_id=interaction.guild_id, context=TagContext.GUILD, name=name
+        )
     else:
-        return await Tag.get_or_none(parent_id=interaction.user.id, context=TagContext.USER, name=name)
+        return await Tag.get_or_none(
+            parent_id=interaction.user.id, context=TagContext.USER, name=name
+        )
+
 
 async def create_tag(interaction: Interaction, name: str, content: str, tag: Tag | None = None):
     if isinstance(tag, Tag):
         tag = tag.update_from_dict({"name": name, "content": content})
         await tag.save()
         return tag
-    
+
     if interaction.context.guild:
-        return await Tag.create(parent_id=interaction.guild_id, context=TagContext.GUILD, name=name, content=content)
+        return await Tag.create(
+            parent_id=interaction.guild_id, context=TagContext.GUILD, name=name, content=content
+        )
     else:
-        return await Tag.create(parent_id=interaction.user.id, context=TagContext.USER, name=name, content=content)
+        return await Tag.create(
+            parent_id=interaction.user.id, context=TagContext.USER, name=name, content=content
+        )
 
 
 @allowed_contexts(guilds=True)
@@ -75,30 +82,29 @@ async def create_tag(interaction: Interaction, name: str, content: str, tag: Tag
 class TagCog(Cog):
     bot: Shakra
     logger = logger_parent.getChild("tags")
-    
+
     def __init__(self, bot: Shakra) -> None:
         self.bot = bot
-    
-    async def cog_load(self) -> None:
-        ...
-    
+
     async def txt_cmd_fallback(self, context: Context, error: CommandError) -> bool:
         if isinstance(error, CommandNotFound) and context.guild is not None:
             failed_cmd = str(context.invoked_with)
             tag = await Tag.get_or_none(parent_id=context.guild.id, name=failed_cmd)
-            if tag is None: 
+            if tag is None:
                 raise error
             await self.reply_tag(context, tag)
             return True
         return False
-            
+
     async def reply_tag(self, ctx: Context, tag: Tag):
         # replies do not need to label the tag, as the message is clearly visible to the user
         await ctx.reply(tag.content, mention_author=False)
-    
-    async def send_tag(self, interaction: Interaction, tag: Tag, style: TagLabelStyle, private: bool = False):
+
+    async def send_tag(
+        self, interaction: Interaction, tag: Tag, style: TagLabelStyle, private: bool = False
+    ):
         view = MISSING
-        
+
         match style:
             case TagLabelStyle.NONE:
                 content = tag.content
@@ -106,53 +112,79 @@ class TagCog(Cog):
                 content = f"-# {tag.name}\n{tag.content}"
             case TagLabelStyle.BUTTON:
                 content = tag.content
-                view = View(timeout=None).add_item(Button(label=tag.name, disabled=True, style=ButtonStyle.primary))
+                view = View(timeout=None).add_item(
+                    Button(label=tag.name, disabled=True, style=ButtonStyle.primary)
+                )
             case _:
-                self.logger.error(f"send_tag called with unknown style {style}, falling back to NONE")
+                self.logger.error(
+                    f"send_tag called with unknown style {style}, falling back to NONE"
+                )
                 content = tag.content
-        
+
         await interaction.response.send_message(content=content, view=view, ephemeral=private)
-    
+
     async def tag_search_callback(self, interaction: Interaction, name: str) -> list[Choice[str]]:
         if interaction.context.guild:
-            searchfilter = Tag.filter(parent_id=interaction.guild_id, context=TagContext.GUILD, name__icontains=name)
+            searchfilter = Tag.filter(
+                parent_id=interaction.guild_id, context=TagContext.GUILD, name__icontains=name
+            )
         else:
-            searchfilter = Tag.filter(parent_id=interaction.user.id, context=TagContext.USER, name__icontains=name)
+            searchfilter = Tag.filter(
+                parent_id=interaction.user.id, context=TagContext.USER, name__icontains=name
+            )
         return [
-            Choice(name=choice.name, value=choice.name) 
-            for choice in 
-            await searchfilter.order_by("name")
+            Choice(name=choice.name, value=choice.name)
+            for choice in await searchfilter.order_by("name")
         ][:25]
-    
+
     @default_permissions(manage_channels=True)
     class ManageTagsGroup(Group, name="manage_tags"):
         @slash_cmd()
-        @describe(name="The name of the tag to set")
         async def set(self, interaction: Interaction, name: str, content: str | None):
-            """Create or update a tag."""
+            """Create or update a tag.
+
+            Args:
+                name (str): The name of the tag to set
+                content (str | None): The new content of the tag
+            """
             maybe_tag = await retrieve_tag(interaction, name)
             if content is None:
                 await interaction.response.send_modal(TagSetModal(maybe_tag, tag_name=name))
             else:
                 tag = await create_tag(interaction, name, content, maybe_tag)
-                await interaction.response.send_message(embed=message_embed(f"Tag `{tag.name}` created!", description=tag.content))
-        
+                await interaction.response.send_message(
+                    embed=message_embed(f"Tag `{tag.name}` created!", description=tag.content),
+                    ephemeral=True,
+                )
+
         @slash_cmd()
-        @describe(name="The name of the tag to delete")
         async def delete(self, interaction: Interaction, name: str):
-            """Delete a tag."""
+            """Delete a tag.
+
+            Args:
+                name (str): The name of the tag to delete
+            """
             tag = await retrieve_tag(interaction, name)
             if tag is None:
-                await interaction.response.send_message(f"Couldn't find tag `{name}`!", ephemeral=True)
+                await interaction.response.send_message(
+                    f"Couldn't find tag `{name}`!", ephemeral=True
+                )
                 return
             await tag.delete()
-            await interaction.response.send_message(embed=message_embed(f"Tag `{name}` delted!", description=tag.content))
-        
+            await interaction.response.send_message(
+                embed=message_embed(f"Tag `{name}` delted!", description=tag.content)
+            )
+
     @slash_cmd(name="tag")
-    @describe(name="The name of the tag to fetch", private="Set to true to show the tag only to yourself.")
     @autocomplete(name=tag_search_callback)
     async def get(self, interaction: Interaction, name: str, private: bool = False):
-        """Get a tag defined in this server."""
+        """Get a tag defined in this server.
+
+        Args:
+            name (str): The name of the tag to fetch
+            private (bool, optional): Set to true to show the tag only to yourself.
+        """
+
         tag = await retrieve_tag(interaction, name)
         if tag is None:
             await interaction.response.send_message(f"Couldn't find tag `{name}`!", ephemeral=True)
@@ -182,7 +214,7 @@ class TagCog(Cog):
         await interaction.response.defer(ephemeral=True)
         
         try:
-            with open("./tags_import.json") as f:
+            with open("./tags_import.json") as f:  # noqa: ASYNC230 # TODO: replace with non-blocking file IO
                 tags: dict[str, str] = orjson.loads(f.read())
         except FileNotFoundError:
             return await interaction.followup.send("No file found!", ephemeral=True)
@@ -256,12 +288,14 @@ class TagListView(LayoutView):
     def construct_page(self) -> None:
         self.clear_items()
         page_tags = self.tags[self.curr_page]
-        self.add_item(Container(
-                TextDisplay(f"## Tags: page {self.curr_page + 1}"), 
+        self.add_item(
+            Container(
+                TextDisplay(f"## Tags: page {self.curr_page + 1}/{len(self.tags)}"),
                 *[TagListView.TagListRow(list(t)) for t in batched(page_tags, 5)],
-                TagListActionRow(self), 
-                accent_colour=APP_COLOUR
-            ))
+                TagListActionRow(self),
+                accent_colour=APP_COLOUR,
+            )
+        )
     
     # Only required if this ever becomes not ephemeral: for now it is so i dont care
     # async def interaction_check(self, interaction: Interaction) -> bool:
@@ -306,5 +340,10 @@ class TagSetModal(Modal):
         ))
     
     async def on_submit(self, interaction: Interaction) -> None:
-        self.tag = await create_tag(interaction, self.name_input.value, self.content_input.value, self.tag) 
-        await interaction.response.send_message(embed=message_embed(f"Tag `{self.tag.name}` created!", description=self.tag.content))
+        self.tag = await create_tag(
+            interaction, self.name_input.value, self.content_input.value, self.tag
+        )
+        await interaction.response.send_message(
+            embed=message_embed(f"Tag `{self.tag.name}` created!", description=self.tag.content),
+            ephemeral=True,
+        )

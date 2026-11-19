@@ -5,3 +5,5 @@ __pycache__
 *.log*
 logs/
 tags_import.json
+config.json
+migrations

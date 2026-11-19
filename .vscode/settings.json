@@ -1,3 +1,4 @@
 {
-    "python.defaultInterpreterPath": "/home/iridaceae/Documents/projects/ShakraBot/.venv/bin/python"
+    "python.defaultInterpreterPath": "/home/iridaceae/Documents/projects/ShakraBot/.venv/bin/python",
+    "python.terminal.useEnvFile": true
 }

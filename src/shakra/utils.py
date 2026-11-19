@@ -8,10 +8,8 @@ from discord import (
     ButtonStyle,
     Colour,
     Embed,
-    Emoji,
     File,
     Interaction,
-    PartialEmoji,
     Permissions,
 )
 from discord.app_commands import MissingPermissions, Transformer, check
@@ -26,6 +24,7 @@ from discord.ui import (
     TextDisplay,
 )
 from pytimeparse.timeparse import timeparse
+from speedruncompy import Game, GetSearch
 
 if TYPE_CHECKING:
     from discord.permissions import _PermissionsKwargs
@@ -119,13 +118,6 @@ def has_permissions_or_private(**perms: Unpack[_PermissionsKwargs]) -> Callable:
 
     return check(predicate)
 
-def emoji_as_string(emoji: Emoji | PartialEmoji | str):
-    """Polyfill to transform undiscovered & unicode emoji into a single format"""
-    if isinstance(emoji, str): return emoji
-    if isinstance(emoji, PartialEmoji) and emoji.id is None:
-        return emoji.name
-    return f"<:{emoji.name}:{emoji.id}>"
-
 EMOJI_RE = re.compile(r"<:(\w*):(\d*)>")
 
 def to_true_emoji(refstring: str):
@@ -175,6 +167,13 @@ def get_parent_id(interaction: Interaction) -> tuple[int, bool]:
     if interaction.context.guild:
         return (interaction.guild_id, True)  # ty: ignore[invalid-return-type]
     return (interaction.user.id, False)
+
+async def get_src_game(name: str) -> Game | None:
+    gameSearch = await GetSearch(name, favorExactMatches=True, includeGames=True).perform()
+    if len(gameSearch.gameList) == 0:
+        return None
+    return gameSearch.gameList[0]
+
 
 # TODO: Polyfills for app command transforms?
 

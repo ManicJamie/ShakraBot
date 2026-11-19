@@ -17,16 +17,12 @@ from discord.ui import (
     Select,
 )
 
-from ..utils import GUILD_IDS
-
 if TYPE_CHECKING:
     from .. import Shakra
 
 async def setup(bot: Shakra):
-    GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
-    
-    await bot.add_cog(RoleCog(bot), guilds=GUILDS)
-
+    pass
+    # await bot.add_cog(RoleCog(bot))
 
 
 class RoleButton(Button):

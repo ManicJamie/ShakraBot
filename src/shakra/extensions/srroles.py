@@ -1,69 +1,97 @@
-from discord import Interaction, Member, Role
+from discord import AllowedMentions, Interaction, Member, Role
 from discord.app_commands import (
     Group,
     command,
     default_permissions,
-    describe,
     guild_only,
 )
 from discord.ext.commands import Cog
 from discord.ui import Modal
-from speedruncompy import GetSearch, GetUserSummary, NetworkId
+from speedruncompy import GetUserSummary, NetworkId
 from speedruncompy.datatypes.defs import UserSocialConnection
 from speedruncompy.exceptions import NotFound
 
 from .. import Shakra
 from ..models import SrRoleEntry
-from ..utils import GUILD_IDS, ConfirmationModal
+from ..utils import GUILD_IDS, ConfirmationModal, get_src_game
 
 
 async def setup(bot: Shakra):
     GUILDS = [g for g in (bot.get_guild(id) for id in GUILD_IDS) if g is not None]
-    
+
     await bot.add_cog(SpeedrunRolesCog(bot), guilds=GUILDS)
     bot.tree.add_command(SpeedrunRolesCog.ManageSrRoles(), guilds=GUILDS)
+
 
 @guild_only()
 class SpeedrunRolesCog(Cog):
     bot: Shakra
-    
+
     def __init__(self, bot: Shakra) -> None:
         self.bot = bot
         self.logger = bot.logger.getChild("SrRoles")
 
     @default_permissions(manage_roles=True)
-    class ManageSrRoles(Group, name="sr_roles_manage"):
+    class ManageSrRoles(Group, name="manage_sr_roles"):
         @command()
         async def add(self, interaction: Interaction, role: Role, game: str):
-            gameSearch = await GetSearch(game, favorExactMatches=True, includeGames=True).perform()
-            if (len(gameSearch.gameList) == 0):
-                return await interaction.followup.send(f"No game with name `{game}` found!")
-            g = gameSearch.gameList[0]
-            
+            """Set a role to be claimable by runners with verified runs on SRC.
+
+            Args:
+                role (Role): Role to grant to verified runners.
+                game (str): _description_
+            """
+            g = await get_src_game(game)
+            if g is None:
+                await interaction.response.send_message(f"No game with name `{game}` found!")
+                return
+
             async def addGame(interaction: Interaction):
-                await SrRoleEntry.create(guild_id=interaction.guild_id, role_id=role.id, game_id=g.id)
-                await interaction.response.send_message(f"Added link for <@&{role.id}> to `{g.name}`", ephemeral=True)
-            
-            await interaction.response.send_modal(ConfirmationModal(
-                addGame, title="Add SR Role", 
-                description=f"Allow verified runners of `{g.name}` to claim the role <@&{role.id}>?"))
-        
+                await SrRoleEntry.create(
+                    guild_id=interaction.guild_id, role_id=role.id, game_id=g.id
+                )
+                await interaction.response.send_message(
+                    f"Added link for <@&{role.id}> to `{g.name}`", ephemeral=True
+                )
+
+            await interaction.response.send_modal(
+                ConfirmationModal(
+                    addGame,
+                    title="Add SR Role",
+                    description=f"Allow verified runners of `{g.name}` to claim the role <@&{role.id}>?",
+                )
+            )
+
         @command()
         async def remove(self, interaction: Interaction, role: Role):
-            count = await SrRoleEntry.filter(guild_id=interaction.guild_id, role_id=role.id).delete()
-            await interaction.response.send_message(f"Removed {count} entries for <@&{role.id}>", ephemeral=True)
-        
+            """Remove all SRC links to a given role.
+
+            Args:
+                role (Role): The role to remove all links from.
+            """
+            count = await SrRoleEntry.filter(
+                guild_id=interaction.guild_id, role_id=role.id
+            ).delete()
+            await interaction.response.send_message(
+                f"Removed {count} entries for <@&{role.id}>",
+                ephemeral=True,
+                allowed_mentions=AllowedMentions.none(),
+            )
+
         @command()
         async def list(self, interaction: Interaction):
+            """List all SRC roles defined in this server."""
             role_entries = await SrRoleEntry.filter(guild_id=interaction.guild_id)
             role_strs = [f"<@&{entry.role_id}>: {entry.game_id}" for entry in role_entries]
-            
+
             await interaction.response.send_message(f"## Defined roles:\n{'\n'.join(role_strs)}")
-    
+
     @command()
-    @describe(src_username="Your username on Speedrun.com.")
     async def sr_roles(self, interaction: Interaction, src_username: str):
         """Get Speedrun.com-linked roles you are eligible for.
+
+        Args:
+            src_username (str): Your username on Speedrun.com
         """
         assert interaction.guild is not None
         assert isinstance(interaction.user, Member)
@@ -89,7 +117,7 @@ class SpeedrunRolesCog(Cog):
             if entry.game_id in games:
                 role = interaction.guild.get_role(entry.role_id)
                 if role is None:
-                    self.logger.warning(f"Role {entry.role_id}")
+                    self.logger.error(f"Role {entry.role_id} is not findable!")
                     await entry.delete()
                     continue
                 allowed_roles.append(role)

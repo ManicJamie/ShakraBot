@@ -82,7 +82,7 @@ class TicketSubmissionCog(Cog):
         """Create a ticket in a server you're a member of.
 
         Args:
-            interaction (Interaction): _description_
+            interaction (Interaction):
         """
         assert isinstance(interaction.user, User)
         guilds: list[Guild] = []
@@ -143,6 +143,7 @@ class TicketReceptionCog(GroupCog, group_name="tickets"):
     
     @slash_cmd(name="respond")
     async def respond(self, interaction: Interaction, content: str):
+        """Respond"""
         if not isinstance(interaction.channel, Thread):
             return await interaction.response.send_message("May only be used in a ticket thread!", ephemeral=True)
         

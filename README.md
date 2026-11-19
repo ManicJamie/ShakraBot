@@ -6,7 +6,7 @@ This rewrite moves most functionality (especially admin-only functionality) to t
 
 ## Features
 
-- [ ] Moderation features including ban reason DMs, message relay
+- [x] Moderation features including ban reason DMs, message relay
     - [ ] (NEW) Ban appeal system, not requiring server membership to appeal
     - [ ] (NEW) Private ticketing system, a la modmail
         - Uses a forum for tickets & allows discussion without responding in the same thread.
@@ -16,7 +16,7 @@ This rewrite moves most functionality (especially admin-only functionality) to t
     - [x] Including text command fallbacks
 - [x] Roles based off linked Speedrun.com profile
     - [ ] (NEW) Allow selecting a colour role based off existing roles (might be more generic)
-- [ ] Speedrun.com queue tracking system
+- [x] Speedrun.com queue tracking system
     - [ ] (NEW) Maybe sync queue to SRC based on linked profile? 
 - [ ] (NEW) Role selectors using modern Components v2 as an alternative to react roles.
 - [ ] (NEW) Vote aid; only show link to members who press a button, checking they have correct role & recording they clicked.
@@ -25,7 +25,7 @@ This rewrite moves most functionality (especially admin-only functionality) to t
 
 ### Deprecated Features
 
-- React roles - might make sense to keep in?
+- React roles - might make sense to keep in? Or do we just accept id:customize?
 - Tiered mutes - weren't seeing much usage and seem like more effort to set up per-guild than it's worth vs just manually assigning roles
     - These mutes were very often indefinite and so the main benefit got destroyed
 
@@ -35,3 +35,15 @@ This rewrite moves most functionality (especially admin-only functionality) to t
 - [ ] Better per-server configurability on a cog registration level
     - [ ] Including better live reload to avoid needing admin maintenance on new guild joins.
 - [ ] 
+
+## Usage
+
+- `uv run --frozen --env-file .env shakra`
+
+Note that the lockfile includes more dependencies than may be necessary; you can use `--extra <name>` to select individual dependencies separate from the lockfile.
+
+The following environment variables are required; the above assumes a `.env` file in the project root. This should contain:
+- `TOKEN`: Discord API token
+- `SRC_TOKEN`: Speedrun.com PHPSESSID cookie (for APIv2 integrations)
+- `TWITCH_APPID`
+- `TWITCH_SECRET`
