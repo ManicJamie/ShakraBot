@@ -101,12 +101,12 @@ class SrcTrackingCog(GroupCog, group_name="src_tracking"):
         )
         if tracking is None:
             return await interaction.response.send_message(
-                f"No game tracking found for `{game.name}` in <#<{channel.id}>.", ephemeral=True
+                f"No game tracking found for `{game.name}` in <#{channel.id}>.", ephemeral=True
             )
         else:
             await tracking.delete()
             await interaction.response.send_message(
-                f"Removed tracking for `{game.name} in <#{channel.id}>", ephemeral=True
+                f"Removed tracking for `{game.name}!` in <#{channel.id}>", ephemeral=True
             )
 
     @command()
@@ -158,7 +158,7 @@ class SrcTrackingCog(GroupCog, group_name="src_tracking"):
             await message.add_reaction(CLAIM_EMOJI)
             await message.clear_reaction(UNCLAIM_EMOJI)
 
-    @loop(minutes=1)
+    @loop(minutes=2)
     async def update_tracked_games(self):
         try:
             for track in await SrcTrackingChannel.all():
@@ -186,6 +186,9 @@ class SrcTrackingCog(GroupCog, group_name="src_tracking"):
                     await channel.send(
                         f"I can no longer see runs of this game ({track.game_id}); tracking has been halted. Please re-setup after adding HornetBot as a verifier."
                     )
+                    continue
+
+                if len(moderation_runs.runs) == 0:
                     continue
 
                 game = moderation_runs._gameDict[track.game_id]
