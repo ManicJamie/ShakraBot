@@ -97,7 +97,7 @@ class SrcTrackingCog(GroupCog, group_name="src_tracking"):
             )
 
         tracking = await SrcTrackingChannel.get_or_none(
-            guild_id=interaction.guild_id, channel_id=interaction.channel_id, game_id=game.id
+            guild_id=interaction.guild_id, channel_id=channel.id, game_id=game.id
         )
         if tracking is None:
             return await interaction.response.send_message(
